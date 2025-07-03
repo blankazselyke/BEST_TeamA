@@ -1,4 +1,4 @@
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
 import torch
 import cv2
@@ -11,32 +11,24 @@ VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
 TARGET_FPS = 0.2
 OUTPUT_FILENAME = "video_description.txt"
 PLOT_FILENAME = "extracted_frames.png"
-MAX_FRAMES = 50  # Optional: limit number of extracted frames
 
 torch.cuda.empty_cache()
 
 # Model & processor
 MODEL_NAME = "Qwen/Qwen2.5-VL-3B-Instruct"
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16
-)
 
-print(f"Loading and quantizing model: {MODEL_NAME}...")
-model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-    MODEL_NAME,
-    quantization_config=quantization_config,
-    device_map="auto"
-)
+print(f"Loading model: {MODEL_NAME}...")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = Qwen2_5_VLForConditionalGeneration.from_pretrained(MODEL_NAME).to(device)
 model.eval()
 print("Model loaded and set to eval mode.")
 
 print("Loading processor...")
 processor = AutoProcessor.from_pretrained(MODEL_NAME)
 
+
 # --- Video Frame Extraction with Quality Filtering ---
-def extract_video_frames(video_path, target_fps=0.2, max_frames=None):
+def extract_video_frames(video_path, target_fps=0.2):
     print(f"Opening video file: {video_path}")
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -69,13 +61,12 @@ def extract_video_frames(video_path, target_fps=0.2, max_frames=None):
                 frames.append(pil_img)
                 prev_hist = hist
 
-            if max_frames and len(frames) >= max_frames:
-                break
         count += 1
 
     cap.release()
     print(f"Extracted {len(frames)} unique frames.")
     return frames
+
 
 def plot_and_save_frames(frames, filename="plot.png"):
     if not frames:
@@ -94,8 +85,9 @@ def plot_and_save_frames(frames, filename="plot.png"):
     plt.close()
     print(f"Saved plot to {filename}")
 
+
 # --- Main Inference Pipeline ---
-video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS, max_frames=MAX_FRAMES)
+video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
 if not video_frames:
     print("[ERROR] No frames extracted. Exiting.")
     exit()
@@ -130,7 +122,6 @@ messages = [
     }
 ]
 
-
 print("Preparing inputs for the model...")
 prompt_text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
 image_inputs, video_inputs = process_vision_info(messages)
@@ -151,7 +142,7 @@ torch.cuda.empty_cache()
 # Generate
 print("Generating description...")
 with torch.no_grad():
-    output_ids = model.generate(**inputs, max_new_tokens=1024)
+    output_ids = model.generate(**inputs, max_new_tokens=512)
 
 generated_ids_trimmed = [
     out[len(inp):] for inp, out in zip(inputs.input_ids, output_ids)
