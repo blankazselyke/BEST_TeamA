@@ -13,7 +13,7 @@ model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     "Qwen/Qwen2.5-VL-3B-Instruct",
     torch_dtype=torch.bfloat16,
-    attn_implementation="flash_attention_2",
+    #attn_implementation="flash_attention_2",
     device_map="auto",
 )
 
