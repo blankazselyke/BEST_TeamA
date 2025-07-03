@@ -17,7 +17,7 @@ PLOT_FILENAME = "extracted_frames.png"
 torch.cuda.empty_cache()
 
 # --- Use consistent model and processor names ---
-MODEL_NAME = "Qwen/Qwen2.5-VL-7B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-VL-3B-Instruct"
 
 # Load the model on the available device(s)
 print(f"Loading model: {MODEL_NAME}...")
