@@ -8,7 +8,7 @@ import numpy as np
 
 
 VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
-TARGET_FPS = 10
+TARGET_FPS = 0.1 # Set to 0.1 to extract one frame per 10 seconds
 
 torch.cuda.empty_cache()
 
@@ -39,7 +39,7 @@ def extract_first_frame(video_path):
         return None
 
 
-def extract_video_frames(video_path, target_fps=2):
+def extract_video_frames(video_path, target_fps=2.0):
     cap = cv2.VideoCapture(video_path)
     video_fps = cap.get(cv2.CAP_PROP_FPS)
     frame_interval = int(video_fps // target_fps)
@@ -72,8 +72,8 @@ max_pixels = 1280*28*28
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
 
-#video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
-picture = extract_first_frame(VIDEO_PATH)
+video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
+#picture = extract_first_frame(VIDEO_PATH)
 
 messages = [
     {
@@ -81,7 +81,7 @@ messages = [
         "content": [
             {
                 "type": "image",
-                "image": picture,
+                "video": video_frames,  # Use the extracted video frames
             },
             {"type": "text", "text": "Describe this image."},
         ],
