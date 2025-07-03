@@ -1,0 +1,2 @@
+transformers
+qwen_vl_utils
