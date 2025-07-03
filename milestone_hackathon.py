@@ -77,7 +77,7 @@ video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
 print(f"Extracted {len(video_frames)} frames from the video.")
 
 # Plot the extracted frames
-def plot_video_frames(frames, max_frames=12):
+def plot_video_frames(frames, max_frames=15):
     """Plot video frames in a grid layout"""
     num_frames = min(len(frames), max_frames)
     if num_frames == 0:
