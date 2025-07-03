@@ -92,7 +92,7 @@ def extract_video_frames(video_path, target_fps=2.0):
 
     frames = []
     prev_hist = None
-    count = 0
+    frame_count = 0
 
     while True:
         success, frame = cap.read()
