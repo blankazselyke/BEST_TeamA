@@ -6,6 +6,7 @@ import cv2
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 
 VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
@@ -46,10 +47,10 @@ def extract_video_frames(video_path, target_fps=2.0):
     frame_interval = int(video_fps // target_fps)
 
     frames = []
-    frame_count = 0
-    success = True
+    prev_hist = None
+    count = 0
 
-    while success:
+    while True:
         success, frame = cap.read()
         if not success:
             break
@@ -61,6 +62,7 @@ def extract_video_frames(video_path, target_fps=2.0):
         frame_count += 1
 
     cap.release()
+    print(f"Extracted {len(frames)} unique frames.")
     return frames
 
 # default processer
@@ -114,6 +116,7 @@ plot_video_frames(video_frames)
 
 #picture = extract_first_frame(VIDEO_PATH)
 
+# Prepare prompt
 messages = [
     {
         "role": "user",
@@ -134,7 +137,7 @@ text = processor.apply_chat_template(
 )
 image_inputs, video_inputs, _ = process_vision_info(messages)
 inputs = processor(
-    text=[text],
+    text=[prompt_text],
     images=image_inputs,
     videos=video_inputs,
     padding=True,
@@ -146,7 +149,7 @@ inputs = inputs.to("cuda")
 # Inference: Generation of the output
 generated_ids = model.generate(**inputs, max_new_tokens=128)
 generated_ids_trimmed = [
-    out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+    out[len(inp):] for inp, out in zip(inputs.input_ids, output_ids)
 ]
 output_text = processor.batch_decode(
     generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
