@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
+VIDEO_PATH = "/dtu/blackhole/00/best/data/demo/2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
 TARGET_FPS = 0.2
 OUTPUT_FILENAME = "video_description.txt"
 PLOT_FILENAME = "extracted_frames.png"
