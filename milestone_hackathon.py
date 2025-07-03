@@ -6,7 +6,7 @@ import torch
 
 # default: Load the model on the available device(s)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-    "Qwen/Qwen2.5-VL-3B-Instruct", torch_dtype="auto", device_map="auto"
+    "Qwen/Qwen2.5-VL-7B-Instruct", torch_dtype="auto", device_map="auto"
 )
 
 # We recommend enabling flash_attention_2 for better acceleration and memory saving, especially in multi-image and video scenarios.
