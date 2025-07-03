@@ -6,6 +6,10 @@ import cv2
 from PIL import Image
 import numpy as np
 
+
+VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
+TARGET_FPS = 10
+
 # default: Load the model on the available device(s)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     "Qwen/Qwen2.5-VL-7B-Instruct", torch_dtype="auto", device_map="auto"
@@ -53,7 +57,8 @@ min_pixels = 256*28*28
 max_pixels = 1280*28*28
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
-video_frames = extract_video_frames("2018-03-13.17-20-14.17-21-19.school.G421.r13.avi", target_fps=10)
+
+video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
 
 messages = [
     {
