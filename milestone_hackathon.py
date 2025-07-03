@@ -5,10 +5,11 @@ import torch
 import cv2
 from PIL import Image
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
-TARGET_FPS = 0.1 # Set to 0.1 to extract one frame per 10 seconds
+TARGET_FPS = 0.2 # Set to 0.2 to extract one frame per 5 seconds
 
 torch.cuda.empty_cache()
 
@@ -74,6 +75,43 @@ processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pix
 
 video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
 print(f"Extracted {len(video_frames)} frames from the video.")
+
+# Plot the extracted frames
+def plot_video_frames(frames, max_frames=12):
+    """Plot video frames in a grid layout"""
+    num_frames = min(len(frames), max_frames)
+    if num_frames == 0:
+        print("No frames to plot")
+        return
+    
+    # Calculate grid dimensions
+    cols = min(4, num_frames)
+    rows = (num_frames + cols - 1) // cols
+    
+    fig, axes = plt.subplots(rows, cols, figsize=(15, 3 * rows))
+    if rows == 1 and cols == 1:
+        axes = [axes]
+    elif rows == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+    
+    for i in range(num_frames):
+        axes[i].imshow(frames[i])
+        axes[i].set_title(f'Frame {i+1}')
+        axes[i].axis('off')
+    
+    # Hide empty subplots
+    for i in range(num_frames, len(axes)):
+        axes[i].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig('video_frames.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+# Plot the frames
+plot_video_frames(video_frames)
+
 #picture = extract_first_frame(VIDEO_PATH)
 
 messages = [
@@ -94,7 +132,7 @@ messages = [
 text = processor.apply_chat_template(
     messages, tokenize=False, add_generation_prompt=True
 )
-image_inputs, video_inputs = process_vision_info(messages)
+image_inputs, video_inputs, _ = process_vision_info(messages)
 inputs = processor(
     text=[text],
     images=image_inputs,
