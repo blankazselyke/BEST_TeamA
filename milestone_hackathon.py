@@ -2,7 +2,9 @@ from transformers import Qwen2_5_VLForConditionalGeneration
 from transformers import AutoProcessor, AutoTokenizer
 from qwen_vl_utils import process_vision_info
 import torch
-
+import cv2
+from PIL import Image
+import numpy as np
 
 # default: Load the model on the available device(s)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -17,6 +19,31 @@ model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
 #     device_map="auto",
 # )
 
+
+
+def extract_video_frames(video_path, target_fps=2):
+    cap = cv2.VideoCapture(video_path)
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_interval = int(video_fps // target_fps)
+
+    frames = []
+    frame_count = 0
+    success = True
+
+    while success:
+        success, frame = cap.read()
+        if not success:
+            break
+        if frame_count % frame_interval == 0:
+            # Convert BGR (OpenCV) to RGB (PIL)
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(image)
+            frames.append(pil_image)
+        frame_count += 1
+
+    cap.release()
+    return frames
+
 # default processer
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
 
@@ -26,15 +53,17 @@ min_pixels = 256*28*28
 max_pixels = 1280*28*28
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
+video_frames = extract_video_frames("2018-03-13.17-20-14.17-21-19.school.G421.r13.avi", target_fps=10)
+
 messages = [
     {
         "role": "user",
         "content": [
             {
-                "type": "image",
-                "image": "https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen-VL/assets/demo.jpeg",
+                "type": "video",
+                "video": video_frames,  # list of PIL images
             },
-            {"type": "text", "text": "Describe this image."},
+            {"type": "text", "text": "Describe what happens in this video."},
         ],
     }
 ]
