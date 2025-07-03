@@ -1,5 +1,4 @@
-from transformers import Qwen2_5_VLForConditionalGeneration
-from transformers import AutoProcessor
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 from qwen_vl_utils import process_vision_info
 import torch
 import cv2
@@ -19,11 +18,27 @@ torch.cuda.empty_cache()
 # --- Use consistent model and processor names ---
 MODEL_NAME = "Qwen/Qwen2.5-VL-3B-Instruct"
 
-# Load the model on the available device(s)
-print(f"Loading model: {MODEL_NAME}...")
-model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-    MODEL_NAME, torch_dtype="auto", device_map="auto"
+# --- MODIFICATION FOR QUANTIZATION START ---
+
+# 1. Create the 4-bit quantization configuration
+# This tells transformers to load the model in 4-bit using the NF4 data type,
+# and to perform computations in bfloat16 for stability.
+quantization_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16
 )
+
+# 2. Load the model with the quantization configuration
+print(f"Loading and quantizing model: {MODEL_NAME}...")
+model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+    MODEL_NAME,
+    quantization_config=quantization_config,
+    device_map="auto" # device_map is essential for bitsandbytes
+)
+
+# --- MODIFICATION FOR QUANTIZATION END ---
+
 
 # Use the processor that corresponds to the loaded model
 print("Loading processor...")
@@ -59,7 +74,9 @@ def extract_video_frames(video_path, target_fps=0.2):
             pil_image = Image.fromarray(image)
             frames.append(pil_image)
         frame_count += 1
-
+    
+    # --- Memory Saving Tip: Release frames list from memory after processing ---
+    # We will do this later in the script after it's used by the model.
     cap.release()
     return frames
 
@@ -91,10 +108,8 @@ def plot_and_save_frames(frames, filename="plot.png"):
         ax.axis('off')
 
     plt.tight_layout(pad=2.0)
-    
-    # --- FIX: Save the plot instead of trying to show it ---
     plt.savefig(filename)
-    plt.close() # Close the plot to free memory
+    plt.close() 
     print(f"Plot of extracted frames saved to {filename}")
 
 
@@ -106,10 +121,8 @@ if not video_frames:
     print("No frames were extracted. Exiting.")
     exit()
 
-# Plot and save the frames
 plot_and_save_frames(video_frames, filename=PLOT_FILENAME)
 
-# Prepare the prompt for the model
 messages = [
     {
         "role": "user",
@@ -123,7 +136,7 @@ messages = [
     }
 ]
 
-# Preparation for inference
+print("Preparing inputs for the model...")
 text = processor.apply_chat_template(
     messages, tokenize=False, add_generation_prompt=True
 )
@@ -135,23 +148,32 @@ inputs = processor(
     padding=True,
     return_tensors="pt",
 )
-inputs = inputs.to("cuda")
+inputs = inputs.to(model.device) # Send inputs to the same device as the model
+
+# --- Free up memory from frames now that they are processed into tensors ---
+del video_frames
+del messages
+del image_inputs
+del video_inputs
+torch.cuda.empty_cache()
+print("Cleaned up frame and message data from memory.")
 
 # Inference: Generation of the output
-generated_ids = model.generate(**inputs, max_new_tokens=128)
+print("Generating video description...")
+generated_ids = model.generate(**inputs, max_new_tokens=1024)
 generated_ids_trimmed = [
     out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
 ]
 output_text = processor.batch_decode(
     generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
 )
-print(output_text)
 
-# save the output in a json file
-# Save to file
-with open("output.txt", "w", encoding="utf-8") as f:
-    for line in output_text:
-        f.write(line + "\n")
+print("\n--- Generated Description ---")
+print(output_text[0])
+print("---------------------------\n")
 
-# Optional: Also print
-print("Saved output to output_7b.txt")
+# Save to file with a consistent filename
+with open(OUTPUT_FILENAME, "w", encoding="utf-8") as f:
+    f.write(output_text[0])
+
+print(f"Saved output to {OUTPUT_FILENAME}")
