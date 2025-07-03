@@ -63,7 +63,7 @@ def extract_video_frames(video_path, target_fps=2.0):
     return frames
 
 # default processer
-processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
+#processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
 
 # The default range for the number of visual tokens per image in the model is 4-16384.
 # You can set min_pixels and max_pixels according to your needs, such as a token range of 256-1280, to balance performance and cost.
@@ -73,6 +73,7 @@ processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pix
 
 
 video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
+print(f"Extracted {len(video_frames)} frames from the video.")
 #picture = extract_first_frame(VIDEO_PATH)
 
 messages = [
@@ -80,10 +81,10 @@ messages = [
         "role": "user",
         "content": [
             {
-                "type": "image",
-                "video": video_frames,  # Use the extracted video frames
+                "type": "video",
+                "video": video_frames,  # Use the extracted video frames as a list of PIL Images
             },
-            {"type": "text", "text": "Describe this image."},
+            {"type": "text", "text": "Describe this video."},
         ],
     }
 ]
