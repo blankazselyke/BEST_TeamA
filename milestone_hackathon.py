@@ -76,38 +76,53 @@ processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pix
 video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
 print(f"Extracted {len(video_frames)} frames from the video.")
 
-# Plot the extracted frames
-def plot_video_frames(frames, max_frames=15):
-    """Plot video frames in a grid layout"""
-    num_frames = min(len(frames), max_frames)
+def plot_video_frames(frames):
+    """
+    Plots a list of video frames vertically, one under the other.
+    
+    Args:
+        frames (list): A list of PIL Image objects.
+    """
+    num_frames = len(frames)
     if num_frames == 0:
-        print("No frames to plot")
+        print("No frames to plot.")
         return
+
+    # Set a base width and calculate height based on the number of frames
+    # to ensure plots aren't too squashed.
+    # You can adjust these values (e.g., fig_width, height_per_frame).
+    fig_width = 8
+    height_per_frame = 5
     
-    # Calculate grid dimensions
-    cols = min(4, num_frames)
-    rows = (num_frames + cols - 1) // cols
+    # Create a figure and a set of subplots. 
+    # We want 'num_frames' rows and 1 column.
+    fig, axes = plt.subplots(
+        num_frames, 1, figsize=(fig_width, num_frames * height_per_frame)
+    )
+
+    # If there's only one frame, matplotlib returns a single Axes object, not an array.
+    # We wrap it in a numpy array to make the code consistent for all cases.
+    if num_frames == 1:
+        axes = np.array([axes])
+        
+    # Flatten the axes array to make it easy to iterate over, regardless of original shape
+    axes = axes.flatten()
+
+    for i, frame in enumerate(frames):
+        ax = axes[i]
+        # Display the image
+        ax.imshow(frame)
+        # Add a title to each subplot to identify the frame
+        ax.set_title(f"Frame {i+1}", fontsize=12)
+        # Turn off the axis ticks and labels for a cleaner look
+        ax.axis('off')
+
+    # Adjust layout to prevent titles and images from overlapping
+    plt.tight_layout(pad=2.0)
     
-    fig, axes = plt.subplots(rows, cols, figsize=(15, 3 * rows))
-    if rows == 1 and cols == 1:
-        axes = [axes]
-    elif rows == 1:
-        axes = [axes]
-    else:
-        axes = axes.flatten()
-    
-    for i in range(num_frames):
-        axes[i].imshow(frames[i])
-        axes[i].set_title(f'Frame {i+1}')
-        axes[i].axis('off')
-    
-    # Hide empty subplots
-    for i in range(num_frames, len(axes)):
-        axes[i].axis('off')
-    
-    plt.tight_layout()
-    plt.savefig('video_frames.png', dpi=150, bbox_inches='tight')
+    # Display the plot
     plt.show()
+
 
 # Plot the frames
 plot_video_frames(video_frames)
