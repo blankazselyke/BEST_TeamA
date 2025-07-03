@@ -11,7 +11,7 @@ cycler==0.12.1
 datasets==3.6.0
 decord==0.6.0
 dill==0.3.8
-fast-attn
+flash-attn
 filelock==3.18.0
 fonttools==4.58.4
 frozenlist==1.7.0

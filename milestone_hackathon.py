@@ -10,6 +10,8 @@ import numpy as np
 VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
 TARGET_FPS = 10
 
+torch.cuda.empty_cache()
+
 # default: Load the model on the available device(s)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     "Qwen/Qwen2.5-VL-7B-Instruct", torch_dtype="auto", device_map="auto"
@@ -23,6 +25,18 @@ model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
 #     device_map="auto",
 # )
 
+def extract_first_frame(video_path):
+    cap = cv2.VideoCapture(video_path)
+    success, frame = cap.read()
+    
+    if success:
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(image)
+        cap.release()
+        return pil_image
+    else:
+        cap.release()
+        return None
 
 
 def extract_video_frames(video_path, target_fps=2):
@@ -58,20 +72,22 @@ max_pixels = 1280*28*28
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
 
-video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
+#video_frames = extract_video_frames(VIDEO_PATH, target_fps=TARGET_FPS)
+picture = extract_first_frame(VIDEO_PATH)
 
 messages = [
     {
         "role": "user",
         "content": [
             {
-                "type": "video",
-                "video": video_frames,  # list of PIL images
+                "type": "image",
+                "image": picture,
             },
-            {"type": "text", "text": "Describe what happens in this video."},
+            {"type": "text", "text": "Describe this image."},
         ],
     }
 ]
+
 
 # Preparation for inference
 text = processor.apply_chat_template(
