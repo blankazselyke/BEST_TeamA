@@ -9,8 +9,52 @@ import matplotlib.pyplot as plt
 import os
 
 
+prompt_description = """
+“You are tasked with analyzing a single frame or sequence of surveillance camera footage and generating a comprehensive description of the scene. Your analysis should proceed in the following structured steps:
+
+Identify the Setting Analyze visible visual cues—such as interior/exterior elements, signage, furniture, materials, spatial layout, human activity, and environmental characteristics—to infer the type of location (e.g., office lobby, street corner, gymnasium, subway station, parking lot, store, school corridor).
+
+Describe the Environment and Activity Based on your inferred setting, describe the observed elements in the scene:
+
+Physical layout (indoors/outdoors, confined/open space)
+
+Lighting conditions (natural, artificial, dim, overexposed)
+
+Time of day if inferable (based on shadows, activity patterns)
+
+Presence, count, and position of people or vehicles
+
+Motion flow: walking, standing, waiting, exiting/entering
+
+Any present objects of interest (bags, packages, signage, furniture)
+
+Context-Aware Anomaly Detection Based on your identified setting, assess which behaviors or objects are inconsistent, abnormal, or suspicious for that specific environment. For example:
+
+Running may be normal in gyms or playgrounds but suspicious in banks or office halls
+
+Loitering may be normal at bus stops but anomalous near loading docks or behind buildings
+
+Abandoned objects may signal suspicion in transit hubs or airports
+
+Access violations (e.g., entering staff-only zones, restricted areas)
+
+Erratic movement, unexpected congregation, or reversed flow Clearly state what makes the behavior or object anomalous in context.
+
+Highlight the Anomaly (If Found) If you detect any anomaly:
+
+Localize it in the scene using approximate coordinates or directional cues (e.g., “front-left corner,” “beside entrance door”)
+
+Describe the anomaly clearly and concisely
+
+Justify why it is considered anomalous in relation to typical activity for the setting and time
+
+If multiple anomalies exist, prioritize those with higher deviation from the norm or potential threat level
+
+Only identify anomalies that deviate from expected patterns based on setting-specific knowledge. Behaviors appropriate for one setting should not be flagged inappropriately in another. Avoid false positives.”
+"""
+
 VIDEO_PATH = "2018-03-13.17-20-14.17-21-19.school.G421.r13.avi"
-TARGET_FPS = 0.2 # Set to 0.2 to extract one frame per 5 seconds
+TARGET_FPS = 1.0 # Set to 0.2 to extract one frame per 5 seconds
 
 torch.cuda.empty_cache()
 
@@ -125,7 +169,7 @@ messages = [
                 "type": "video",
                 "video": video_frames,  # Use the extracted video frames as a list of PIL Images
             },
-            {"type": "text", "text": "Describe this video."},
+            {"type": "text", "text": prompt_description},
         ],
     }
 ]
@@ -137,7 +181,7 @@ text = processor.apply_chat_template(
 )
 image_inputs, video_inputs, _ = process_vision_info(messages)
 inputs = processor(
-    text=[prompt_text],
+    text=[text],
     images=image_inputs,
     videos=video_inputs,
     padding=True,
